@@ -1,0 +1,18 @@
+version: "3"
+services: 
+
+  nginx-rtmp:
+    image: alqutami/rtmp-hls:latest-alpine
+    ports: 
+      - 1935:1935
+      - 8080:8080
+    volumes:
+      - ./player:/usr/local/nginx/html/players2
+
+  detact: 
+    image: detact
+    command: bash
+    tty: true
+    volumes:
+      - ./:/app
+    privileged: true

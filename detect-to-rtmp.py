@@ -8,6 +8,9 @@ from imutils import face_utils
 import imutils
 import dlib
 import cv2
+from time import sleep
+
+from ffmpeg_streamer import Streamer
 
 model_path = "./model/shape_predictor_68_face_landmarks.dat"
 
@@ -27,11 +30,21 @@ def detect():
 
     (lStart, lEnd) = face_utils.FACIAL_LANDMARKS_68_IDXS["left_eye"]
     (rStart, rEnd) = face_utils.FACIAL_LANDMARKS_68_IDXS["right_eye"]
-    cap = cv2.VideoCapture(0)
+
+    cap = cv2.VideoCapture("rtmp://192.168.10.10:1935/live/cap")
+    size = (int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)), int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)))
+    print("Get size: {}x{}".format(size[0], size[1]))
+    # cap = cv2.VideoCapture(-1, cv2.CAP_DSHOW)
+    streamer = Streamer("rtmp://192.168.10.10:1935/live/detect", (640, 480))
+
     flag = 0
     while True:
         ret, frame = cap.read()
-        # print(ret, frame)
+        
+        # print(ret, not frame is None)
+        if (not ret):
+            print("Cannot open vedio.")
+            sleep(5)
         frame = imutils.resize(frame, width=640, height=640)
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         subjects = detect(gray, 0)
@@ -49,7 +62,7 @@ def detect():
             cv2.drawContours(frame, [rightEyeHull], -1, (0, 255, 0), 1)
             if ear < thresh:
                 flag += 1
-                print("ear: ", flag)
+                # print("ear: ", flag)
                 if flag >= frame_check:
                     cv2.putText(frame, "****************ALERT!****************", (10, 30),
                                 cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
@@ -58,11 +71,14 @@ def detect():
                 # print ("Drowsy")
             else:
                 flag = 0
-        cv2.imshow("Frame", frame)
-        key = cv2.waitKey(1) & 0xFF
-        if key == ord("q"):
-            break
-    cv2.destroyAllWindows()
+        # print("Flag: {}".format(flag))
+        cv2.putText(frame, "Flag: {}".format(flag), (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
+        # cv2.imshow("Frame", frame)
+        streamer.pushframe(frame)
+        # key = cv2.waitKey(1) & 0xFF
+        # if key == ord("q"):
+        #     break
+    # cv2.destroyAllWindows()
     cap.release()
 
 
